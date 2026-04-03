@@ -15,6 +15,7 @@ from app.integrations.clients.coralogix import CoralogixClient
 from app.integrations.clients.datadog.client import DatadogClient, DatadogConfig
 from app.integrations.clients.honeycomb import HoneycombClient
 from app.integrations.clients.tracer_client.client import TracerClient
+from app.integrations.clients.vercel import VercelClient, VercelConfig
 from app.integrations.github_mcp import build_github_mcp_config, validate_github_mcp_config
 from app.integrations.models import (
     AWSIntegrationConfig,
@@ -24,6 +25,7 @@ from app.integrations.models import (
     HoneycombIntegrationConfig,
     SlackWebhookConfig,
     TracerIntegrationConfig,
+    VercelIntegrationConfig,
 )
 from app.integrations.sentry import build_sentry_config, validate_sentry_config
 from app.integrations.store import load_integrations
@@ -43,6 +45,7 @@ SUPPORTED_VERIFY_SERVICES = (
     "tracer",
     "github",
     "sentry",
+    "vercel",
 )
 CORE_VERIFY_SERVICES = frozenset({"grafana", "datadog", "honeycomb", "coralogix", "aws"})
 _SUPPORTED_GRAFANA_TYPES = ("loki", "tempo", "prometheus")
@@ -166,6 +169,16 @@ def resolve_effective_integrations() -> dict[str, dict[str, Any]]:
             },
         }
 
+    vercel_integration = classified_integrations.get("vercel")
+    if isinstance(vercel_integration, dict):
+        effective["vercel"] = {
+            "source": source_by_service.get("vercel", "local env"),
+            "config": {
+                "api_token": str(vercel_integration.get("api_token", "")).strip(),
+                "team_id": str(vercel_integration.get("team_id", "")).strip(),
+            },
+        }
+
     return EffectiveIntegrations.model_validate(effective).model_dump(exclude_none=True)
 
 
@@ -265,7 +278,9 @@ def _verify_honeycomb(source: str, config: dict[str, Any]) -> dict[str, str]:
         )
 
     environment = auth_result.get("environment", {})
-    environment_slug = str(environment.get("slug", "")).strip() if isinstance(environment, dict) else ""
+    environment_slug = (
+        str(environment.get("slug", "")).strip() if isinstance(environment, dict) else ""
+    )
     environment_label = environment_slug or "classic"
     return _result(
         "honeycomb",
@@ -418,7 +433,9 @@ def _verify_tracer(source: str, config: dict[str, Any]) -> dict[str, str]:
 
     org_id = extract_org_id_from_jwt(jwt_token)
     if not org_id:
-        return _result("tracer", source, "failed", "JWT token does not contain an organization claim.")
+        return _result(
+            "tracer", source, "failed", "JWT token does not contain an organization claim."
+        )
 
     try:
         tracer_client = TracerClient(base_url, org_id, jwt_token)
@@ -456,6 +473,32 @@ def _verify_sentry(source: str, config: dict[str, Any]) -> dict[str, str]:
     )
 
 
+def _verify_vercel(source: str, config: dict[str, Any]) -> dict[str, str]:
+    vercel_config = VercelIntegrationConfig.model_validate(config)
+    vercel_client = VercelClient(
+        VercelConfig(api_token=vercel_config.api_token, team_id=vercel_config.team_id)
+    )
+    if not vercel_client.is_configured:
+        return _result("vercel", source, "missing", "Missing API token for Vercel access.")
+
+    result = vercel_client.list_projects(limit=1)
+    if not result.get("success"):
+        return _result(
+            "vercel",
+            source,
+            "failed",
+            f"Project API check failed: {result.get('error', 'unknown error')}",
+        )
+
+    team_detail = f" (team {vercel_config.team_id})" if vercel_config.team_id else ""
+    return _result(
+        "vercel",
+        source,
+        "passed",
+        f"Connected to Vercel API{team_detail} and listed {result.get('total', 0)} accessible project(s).",
+    )
+
+
 def verify_integrations(
     service: str | None = None,
     *,
@@ -470,7 +513,9 @@ def verify_integrations(
         if current_service == "slack":
             integration = effective_integrations.get("slack")
             if not integration:
-                results.append(_result("slack", "-", "missing", "SLACK_WEBHOOK_URL is not configured."))
+                results.append(
+                    _result("slack", "-", "missing", "SLACK_WEBHOOK_URL is not configured.")
+                )
                 continue
             results.append(
                 _verify_slack(
@@ -483,7 +528,9 @@ def verify_integrations(
 
         integration = effective_integrations.get(current_service)
         if not integration:
-            results.append(_result(current_service, "-", "missing", "Not configured in local store or env."))
+            results.append(
+                _result(current_service, "-", "missing", "Not configured in local store or env.")
+            )
             continue
 
         source = str(integration["source"])
@@ -504,6 +551,8 @@ def verify_integrations(
             results.append(_verify_github(source, config))
         elif current_service == "sentry":
             results.append(_verify_sentry(source, config))
+        elif current_service == "vercel":
+            results.append(_verify_vercel(source, config))
 
     return results
 
