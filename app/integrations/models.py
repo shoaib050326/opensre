@@ -152,6 +152,14 @@ class EffectiveIntegrationEntry(StrictConfigModel):
     config: dict[str, Any]
 
 
+class VercelIntegrationConfig(StrictConfigModel):
+    """Normalized Vercel credentials used by resolution and verification flows."""
+
+    api_token: str
+    team_id: str = ""
+    integration_id: str = ""
+
+
 class EffectiveIntegrations(StrictConfigModel):
     """Strict container for normalized effective integrations."""
 
@@ -164,3 +172,4 @@ class EffectiveIntegrations(StrictConfigModel):
     tracer: EffectiveIntegrationEntry | None = None
     github: EffectiveIntegrationEntry | None = None
     sentry: EffectiveIntegrationEntry | None = None
+    vercel: EffectiveIntegrationEntry | None = None
