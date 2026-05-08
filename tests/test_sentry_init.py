@@ -167,6 +167,76 @@ def test_capture_exception_attaches_context(monkeypatch) -> None:
     assert extras == {"turn": 3}
 
 
+def test_capture_exception_derives_tool_tag_from_context(monkeypatch) -> None:
+    monkeypatch.delenv("OPENSRE_SENTRY_DISABLED", raising=False)
+    monkeypatch.delenv("OPENSRE_NO_TELEMETRY", raising=False)
+    monkeypatch.delenv("DO_NOT_TRACK", raising=False)
+    capture_mock = MagicMock()
+    tags: dict[str, str] = {}
+
+    class _Scope:
+        def __enter__(self) -> _Scope:
+            return self
+
+        def __exit__(self, *_args: object) -> None:
+            return None
+
+        def set_tag(self, key: str, value: str) -> None:
+            tags[key] = value
+
+        def set_extra(self, _key: str, _value: object) -> None:
+            return None
+
+    monkeypatch.setitem(
+        sys.modules,
+        "sentry_sdk",
+        SimpleNamespace(capture_exception=capture_mock, push_scope=_Scope),
+    )
+
+    sentry_mod.capture_exception(ValueError("boom"), context="tool.search_logs")
+
+    capture_mock.assert_called_once()
+    assert tags == {
+        "opensre.context": "tool.search_logs",
+        "tool": "search_logs",
+    }
+
+
+def test_capture_exception_derives_node_tag_from_context(monkeypatch) -> None:
+    monkeypatch.delenv("OPENSRE_SENTRY_DISABLED", raising=False)
+    monkeypatch.delenv("OPENSRE_NO_TELEMETRY", raising=False)
+    monkeypatch.delenv("DO_NOT_TRACK", raising=False)
+    capture_mock = MagicMock()
+    tags: dict[str, str] = {}
+
+    class _Scope:
+        def __enter__(self) -> _Scope:
+            return self
+
+        def __exit__(self, *_args: object) -> None:
+            return None
+
+        def set_tag(self, key: str, value: str) -> None:
+            tags[key] = value
+
+        def set_extra(self, _key: str, _value: object) -> None:
+            return None
+
+    monkeypatch.setitem(
+        sys.modules,
+        "sentry_sdk",
+        SimpleNamespace(capture_exception=capture_mock, push_scope=_Scope),
+    )
+
+    sentry_mod.capture_exception(RuntimeError("boom"), context="node.chat_agent")
+
+    capture_mock.assert_called_once()
+    assert tags == {
+        "opensre.context": "node.chat_agent",
+        "node": "chat_agent",
+    }
+
+
 def test_init_sentry_noops_when_opensre_no_telemetry(monkeypatch) -> None:
     sentry_mod._init_sentry_once.cache_clear()
     monkeypatch.delenv("OPENSRE_SENTRY_DISABLED", raising=False)
@@ -654,3 +724,36 @@ def test_apply_scope_tags_is_first_wins(monkeypatch) -> None:
         call.args[1] for call in tag_mock.call_args_list if call.args[0] == "entrypoint"
     ]
     assert entrypoint_tags == ["webapp"]
+
+
+def test_before_send_applies_tool_fingerprint() -> None:
+    event: dict[str, object] = {
+        "tags": {"tool": "my_tool"},
+        "exception": {"values": [{"type": "ValueError"}]},
+    }
+    sentry_mod._before_send(event, {})
+    assert event.get("fingerprint") == ["tool-error", "my_tool", "{{ default }}"]
+
+
+def test_before_send_applies_node_fingerprint() -> None:
+    event: dict[str, object] = {
+        "tags": {"node": "chat_agent"},
+        "exception": {"values": [{"type": "RuntimeError"}]},
+    }
+    sentry_mod._before_send(event, {})
+    assert event.get("fingerprint") == ["node-error", "chat_agent", "{{ default }}"]
+
+
+def test_before_send_sets_node_fingerprint_when_both_tags_present() -> None:
+    event: dict[str, object] = {
+        "tags": {"tool": "search", "node": "chat_agent"},
+        "exception": {"values": [{"type": "ValueError"}]},
+    }
+    sentry_mod._before_send(event, {})
+    assert event.get("fingerprint") == ["node-error", "chat_agent", "{{ default }}"]
+
+
+def test_before_send_does_not_apply_fingerprint_without_tags() -> None:
+    event: dict[str, object] = {"exception": {"values": [{"type": "ValueError"}]}}
+    sentry_mod._before_send(event, {})
+    assert "fingerprint" not in event

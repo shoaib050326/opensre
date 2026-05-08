@@ -85,6 +85,9 @@ def _execute_with_retry(
                 backoff_seconds = 2**attempt
                 time.sleep(backoff_seconds)
                 continue
+            from app.utils.sentry_sdk import capture_exception
+
+            capture_exception(e, context=f"tool.{action_name}")
             break
 
     available_source_keys = list(available_sources.keys()) if available_sources else []

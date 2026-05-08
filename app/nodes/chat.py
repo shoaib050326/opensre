@@ -239,6 +239,9 @@ def tool_executor_node(state: AgentState) -> dict[str, Any]:
         except GuardrailBlockedError:
             raise
         except Exception as e:
+            from app.utils.sentry_sdk import capture_exception
+
+            capture_exception(e, context=f"tool.{tool_name}")
             result = json.dumps({"error": str(e)})
 
         tool_messages.append(

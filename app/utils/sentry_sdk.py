@@ -189,6 +189,31 @@ def _scrub_event_in_place(event: dict[str, Any]) -> None:
                     _scrub_stacktrace_frames(frames)
 
 
+def _apply_fingerprint(event: dict[str, Any]) -> None:
+    """Apply fingerprint rules so related errors group sensibly.
+
+    Tool errors get per-tool buckets; node errors get per-node buckets.  The
+    ``{{ default }}`` placeholder preserves Sentry's built-in grouping inside
+    the tool/node scope so similar exceptions don't split into separate issues.
+    """
+    tags = event.get("tags") or {}
+    tool_name = tags.get("tool")
+    if tool_name:
+        event["fingerprint"] = ["tool-error", tool_name, "{{ default }}"]
+
+    node_name = tags.get("node")
+    if node_name:
+        event["fingerprint"] = ["node-error", node_name, "{{ default }}"]
+
+
+def _set_context_tags(scope: Any, context: str) -> None:
+    """Attach OpenSRE context tags used by Sentry grouping rules."""
+    scope.set_tag("opensre.context", context)
+    prefix, _, name = context.partition(".")
+    if prefix in {"tool", "node"} and name:
+        scope.set_tag(prefix, name)
+
+
 def _before_send(event: Any, _hint: dict[str, Any]) -> Any:
     """Drop or scrub a Sentry event before transport.
 
@@ -201,6 +226,7 @@ def _before_send(event: Any, _hint: dict[str, Any]) -> Any:
         return event
     try:
         _scrub_event_in_place(event)
+        _apply_fingerprint(event)
     except Exception:
         # The hook must never raise — Sentry will swallow the event silently.
         return event
@@ -406,7 +432,7 @@ def capture_exception(
             return
         with sentry_sdk.push_scope() as scope:
             if context is not None:
-                scope.set_tag("opensre.context", context)
+                _set_context_tags(scope, context)
             if extra:
                 for key, value in extra.items():
                     scope.set_extra(key, value)

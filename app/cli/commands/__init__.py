@@ -6,6 +6,7 @@ import click
 
 from app.cli.commands.agent import agents
 from app.cli.commands.config import config_command
+from app.cli.commands.debug import debug_group
 from app.cli.commands.deploy import deploy
 from app.cli.commands.doctor import doctor_command
 from app.cli.commands.general import (
@@ -25,6 +26,7 @@ _COMMANDS: tuple[click.Command, ...] = (
     investigate_command,
     onboard,
     config_command,
+    debug_group,
     deploy,
     remote,
     tests,

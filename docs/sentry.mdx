@@ -90,6 +90,27 @@ Status: passed
 Detail: Sentry validated for org your-org; issues API responded successfully with 5 issue(s)
 ```
 
+### DSN smoke test
+
+To check that the error-monitoring pipeline (Sentry SDK DSN) is configured and reachable, run:
+
+```bash
+opensre debug sentry
+```
+
+This command initializes Sentry with your configured DSN, captures a synthetic exception, transmits it, and reports whether the event was delivered. Useful for:
+
+- Verifying a custom `OPENSRE_SENTRY_DSN` or `SENTRY_DSN` environment variable override works.
+- Confirming network connectivity to Sentry's ingest endpoint.
+- Filtering the synthetic test event in Sentry's issue stream with `debug:true`.
+
+**Exit codes:**
+
+| Code | Meaning |
+| --- | --- |
+| `0` | DSN configured and event transmitted. |
+| `1` | DSN missing, init failed, or event not transmitted within the 5-second timeout. |
+
 ## Troubleshooting
 
 | Symptom | Fix |
