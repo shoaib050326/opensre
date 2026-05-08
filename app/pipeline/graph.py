@@ -1,5 +1,6 @@
 """Unified agent pipeline — wires nodes and edges into a LangGraph."""
 
+import functools
 from collections.abc import Callable
 from typing import Any, cast
 
@@ -38,6 +39,25 @@ from app.types.config import NodeConfig
 NodeWithConfig = Callable[[AgentState, NodeConfig | None], dict[str, Any]]
 
 
+def _traced_node(name: str, fn: Callable[..., Any]) -> Callable[..., Any]:
+    """Wrap a LangGraph node so unhandled exceptions are captured by Sentry."""
+
+    @functools.wraps(fn)
+    def _wrapped(*args: Any, **kwargs: Any) -> Any:
+        try:
+            return fn(*args, **kwargs)
+        except Exception as exc:
+            import sentry_sdk
+
+            from app.utils.sentry_sdk import capture_exception
+
+            sentry_sdk.set_tag("node", name)
+            capture_exception(exc)
+            raise
+
+    return _wrapped
+
+
 def _accept_langgraph_config(func: NodeWithConfig) -> Callable[..., dict[str, Any]]:
     """Adapt a NodeConfig-typed node for LangGraph runtime injection."""
 
@@ -54,22 +74,55 @@ def build_graph(config: None = None) -> CompiledStateGraph:
     _ = config
     graph = StateGraph(AgentState)
 
-    graph.add_node("inject_auth", _accept_langgraph_config(inject_auth_node))
+    graph.add_node(
+        "inject_auth",
+        _traced_node("inject_auth", _accept_langgraph_config(inject_auth_node)),
+    )
 
-    graph.add_node("router", router_node)
-    graph.add_node("chat_agent", _accept_langgraph_config(chat_agent_node))
-    graph.add_node("general", _accept_langgraph_config(general_node))
-    graph.add_node("tool_executor", tool_executor_node)
+    graph.add_node("router", _traced_node("router", router_node))
+    graph.add_node(
+        "chat_agent",
+        _traced_node("chat_agent", _accept_langgraph_config(chat_agent_node)),
+    )
+    graph.add_node(
+        "general",
+        _traced_node("general", _accept_langgraph_config(general_node)),
+    )
+    graph.add_node("tool_executor", _traced_node("tool_executor", tool_executor_node))
 
-    graph.add_node("extract_alert", _accept_langgraph_config(node_extract_alert))
-    graph.add_node("resolve_integrations", _accept_langgraph_config(node_resolve_integrations))
-    graph.add_node("plan_actions", _accept_langgraph_config(node_plan_actions))
-    graph.add_node("investigate_hypothesis", node_investigate_hypothesis)
-    graph.add_node("merge_hypothesis_results", merge_hypothesis_results)
-    graph.add_node("diagnose", _accept_langgraph_config(node_diagnose_root_cause))
-    graph.add_node("adapt_window", _accept_langgraph_config(node_adapt_window))
-    graph.add_node("opensre_eval", node_opensre_llm_eval)
-    graph.add_node("publish", _accept_langgraph_config(node_publish_findings))
+    graph.add_node(
+        "extract_alert",
+        _traced_node("extract_alert", _accept_langgraph_config(node_extract_alert)),
+    )
+    graph.add_node(
+        "resolve_integrations",
+        _traced_node("resolve_integrations", _accept_langgraph_config(node_resolve_integrations)),
+    )
+    graph.add_node(
+        "plan_actions",
+        _traced_node("plan_actions", _accept_langgraph_config(node_plan_actions)),
+    )
+    graph.add_node(
+        "investigate_hypothesis",
+        _traced_node("investigate_hypothesis", node_investigate_hypothesis),
+    )
+    graph.add_node(
+        "merge_hypothesis_results",
+        _traced_node("merge_hypothesis_results", merge_hypothesis_results),
+    )
+    graph.add_node(
+        "diagnose",
+        _traced_node("diagnose", _accept_langgraph_config(node_diagnose_root_cause)),
+    )
+    graph.add_node(
+        "adapt_window",
+        _traced_node("adapt_window", _accept_langgraph_config(node_adapt_window)),
+    )
+    graph.add_node("opensre_eval", _traced_node("opensre_eval", node_opensre_llm_eval))
+    graph.add_node(
+        "publish",
+        _traced_node("publish", _accept_langgraph_config(node_publish_findings)),
+    )
 
     graph.set_entry_point("inject_auth")
 

@@ -11,8 +11,8 @@ import json
 import logging
 import os
 import re
-from collections.abc import Mapping
-from contextlib import suppress
+from collections.abc import Iterator, Mapping
+from contextlib import contextmanager, suppress
 from functools import cache
 from typing import Any
 from urllib.parse import urlsplit, urlunsplit
@@ -411,3 +411,16 @@ def capture_exception(
                 for key, value in extra.items():
                     scope.set_extra(key, value)
             sentry_sdk.capture_exception(exc)
+
+
+@contextmanager
+def report_silent(*, where: str, **tags: str) -> Iterator[None]:
+    try:
+        yield
+    except Exception as exc:
+        import sentry_sdk
+
+        sentry_sdk.set_tag("silent_at", where)
+        for k, v in tags.items():
+            sentry_sdk.set_tag(k, v)
+        capture_exception(exc)

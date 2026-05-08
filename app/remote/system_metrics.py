@@ -17,6 +17,8 @@ import time
 from pathlib import Path
 from typing import Any
 
+from app.utils.sentry_sdk import report_silent
+
 _resource: Any | None
 
 try:
@@ -37,23 +39,26 @@ def collect_system_metrics() -> dict[str, Any]:
     if cpu is not None:
         metrics["cpu"] = cpu
 
-    memory = _collect_memory()
-    if memory is not None:
-        metrics["memory"] = memory
+    with report_silent(where="remote.system_metrics.memory"):
+        memory = _collect_memory()
+        if memory is not None:
+            metrics["memory"] = memory
 
     disk = _collect_disk()
     if disk is not None:
         metrics["disk"] = disk
 
-    uptime = _collect_uptime()
-    if uptime is not None:
-        metrics["uptime"] = uptime
+    with report_silent(where="remote.system_metrics.uptime"):
+        uptime = _collect_uptime()
+        if uptime is not None:
+            metrics["uptime"] = uptime
 
     metrics["platform"] = _collect_platform()
 
-    process = _collect_process()
-    if process is not None:
-        metrics["process"] = process
+    with report_silent(where="remote.system_metrics.process"):
+        process = _collect_process()
+        if process is not None:
+            metrics["process"] = process
 
     return metrics
 

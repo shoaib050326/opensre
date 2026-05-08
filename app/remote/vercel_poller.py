@@ -15,6 +15,7 @@ from urllib.parse import parse_qs, urlparse
 
 from app.integrations.verify import resolve_effective_integrations
 from app.services.vercel import VercelClient, VercelConfig, make_vercel_client
+from app.utils.sentry_sdk import report_silent
 
 logger = logging.getLogger(__name__)
 
@@ -831,8 +832,11 @@ class VercelPoller:
         )
 
         while True:
-            try:
-                candidates = await asyncio.to_thread(self.collect_candidates)
+            with report_silent(where="remote.vercel_poller"):
+                candidates: list[VercelInvestigationCandidate] = []
+                with report_silent(where="remote.vercel_poller.collect"):
+                    candidates = await asyncio.to_thread(self.collect_candidates)
+
                 for candidate in candidates:
                     try:
                         was_processed = await handle_candidate(candidate)
@@ -848,12 +852,8 @@ class VercelPoller:
                             candidate.dedupe_key,
                             candidate.signature,
                         )
-            except asyncio.CancelledError:
-                raise
-            except Exception:
-                logger.exception("Vercel poller iteration failed")
 
-            await asyncio.sleep(self.settings.interval_seconds)
+                await asyncio.sleep(self.settings.interval_seconds)
 
 
 def collect_vercel_candidates(

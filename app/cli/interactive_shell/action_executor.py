@@ -233,6 +233,7 @@ def run_cd_command(command: str, session: ReplSession, console: Console) -> None
     try:
         os.chdir(target)
     except Exception as exc:
+        report_exception(exc, context="interactive_shell.cd")
         console.print(f"[red]cd failed:[/red] {escape(str(exc))}")
         session.record("shell", command, ok=False)
         return

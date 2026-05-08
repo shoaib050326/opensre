@@ -10,6 +10,7 @@ from pydantic import Field, field_validator
 from app.strict_config import StrictConfigModel
 from app.types.evidence import EvidenceSource
 from app.types.retrieval import RetrievalControls
+from app.utils.sentry_sdk import capture_exception
 
 
 class ToolMetadata(StrictConfigModel):
@@ -111,7 +112,17 @@ class BaseTool(ABC):
         }
 
     def __call__(self, **kwargs: Any) -> dict[str, Any]:
-        return self.run(**kwargs)  # type: ignore[attr-defined, no-any-return]
+        try:
+            return self.run(**kwargs)  # type: ignore[attr-defined, no-any-return]
+        except Exception as exc:
+            import sentry_sdk
+
+            sentry_sdk.set_tag("tool", self.name)
+            capture_exception(exc)
+            return {
+                "error": f"{type(exc).__name__}: {exc}",
+                "exception_type": type(exc).__name__,
+            }
 
     def is_available(self, _sources: dict[str, dict]) -> bool:
         """Return True when required data sources are present.

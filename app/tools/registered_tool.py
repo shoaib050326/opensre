@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import functools
 import inspect
 from collections.abc import Callable, Iterable
 from dataclasses import dataclass, field
@@ -19,6 +20,31 @@ _DEFAULT_SURFACES: tuple[ToolSurface, ...] = ("investigation",)
 _VALID_SURFACES = set(get_args(ToolSurface))
 CostTier = Literal["cheap", "moderate", "expensive"]
 _VALID_COST_TIERS = set(get_args(CostTier))
+
+
+def _wrap_run_with_sentry(
+    run_fn: Callable[..., Any],
+    tool_name: str,
+) -> Callable[..., Any]:
+    """Wrap a tool's run function to capture unhandled exceptions to Sentry."""
+
+    @functools.wraps(run_fn)
+    def _wrapped(*args: Any, **kwargs: Any) -> Any:
+        try:
+            return run_fn(*args, **kwargs)
+        except Exception as exc:
+            import sentry_sdk
+
+            from app.utils.sentry_sdk import capture_exception
+
+            sentry_sdk.set_tag("tool", tool_name)
+            capture_exception(exc)
+            return {
+                "error": f"{type(exc).__name__}: {exc}",
+                "exception_type": type(exc).__name__,
+            }
+
+    return _wrapped
 
 
 def _always_available(_sources: dict[str, dict]) -> bool:
@@ -236,7 +262,7 @@ class RegisteredTool:
             outputs=metadata.outputs,
             retrieval_controls=retrieval_controls or metadata.retrieval_controls,
             surfaces=_normalize_surfaces(resolved_surfaces),
-            run=tool.run,  # type: ignore[attr-defined]
+            run=_wrap_run_with_sentry(tool.run, metadata.name),  # type: ignore[attr-defined]
             is_available=tool.is_available,
             extract_params=tool.extract_params,
             tags=resolved_tags,
@@ -268,9 +294,10 @@ class RegisteredTool:
         if source is None:
             raise ValueError("Function tools must declare a source.")
 
+        resolved_name = name or func.__name__
         inferred_description = inspect.getdoc(func) or func.__name__.replace("_", " ")
         return cls(
-            name=name or func.__name__,
+            name=resolved_name,
             description=description or inferred_description,
             display_name=display_name,
             input_schema=input_schema or infer_input_schema(func),
@@ -280,7 +307,7 @@ class RegisteredTool:
             requires=list(requires or []),
             outputs=dict(outputs or {}),
             retrieval_controls=retrieval_controls or RetrievalControls(),
-            run=func,
+            run=_wrap_run_with_sentry(func, resolved_name),
             is_available=is_available or _always_available,
             extract_params=extract_params or _extract_no_params,
             tags=tags or (),
