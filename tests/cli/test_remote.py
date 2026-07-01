@@ -383,7 +383,10 @@ def test_remote_interactive_redeploy_refreshes_to_new_remote_url() -> None:
             side_effect=[{"ec2": old_url}, {"ec2": new_url}],
         ),
         patch("app.cli.wizard.store.load_active_remote_name", side_effect=["ec2", "ec2"]),
-        patch("app.cli.commands.remote._run_preflight", side_effect=[stream_unavailable, streaming_ready]) as mock_preflight,
+        patch(
+            "app.cli.commands.remote._run_preflight",
+            side_effect=[stream_unavailable, streaming_ready],
+        ) as mock_preflight,
         patch("app.cli.commands.deploy._redeploy_ec2") as mock_redeploy,
         patch.object(questionary, "select", side_effect=_select),
         patch.object(questionary, "text", return_value=_AnsweredPrompt("feature/streaming")),
