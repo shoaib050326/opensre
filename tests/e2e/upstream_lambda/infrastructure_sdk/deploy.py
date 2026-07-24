@@ -60,9 +60,7 @@ def bundle_pipeline_code(pipeline_dir: Path) -> bytes:
 
         # Copy vendored dependencies from api_ingester to root level
         api_ingester_dir = pipeline_dir / "api_ingester"
-        vendored_packages = [
-            "requests", "urllib3", "certifi", "charset_normalizer", "idna"
-        ]
+        vendored_packages = ["requests", "urllib3", "certifi", "charset_normalizer", "idna"]
         for pkg in vendored_packages:
             pkg_src = api_ingester_dir / pkg
             if pkg_src.exists():
@@ -295,7 +293,9 @@ def create_api_gateways(lambdas: dict) -> dict:
     }
 
 
-def add_s3_trigger(landing_bucket: str, mock_dag_lambda_arn: str, mock_dag_lambda_name: str) -> None:
+def add_s3_trigger(
+    landing_bucket: str, mock_dag_lambda_arn: str, mock_dag_lambda_name: str
+) -> None:
     """Add S3 event notification to trigger MockDag Lambda."""
     print("Adding S3 event notification...")
 
