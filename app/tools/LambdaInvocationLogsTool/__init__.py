@@ -58,7 +58,11 @@ def get_lambda_invocation_logs(
     if request_id:
         result = get_invocation_logs_by_request_id(function_name, request_id, limit)
         if not result.get("success"):
-            return {"error": result.get("error", "Unknown error"), "function_name": function_name, "request_id": request_id}
+            return {
+                "error": result.get("error", "Unknown error"),
+                "function_name": function_name,
+                "request_id": request_id,
+            }
         data = result.get("data", {})
         return {
             "found": bool(data.get("logs")),
