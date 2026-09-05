@@ -100,21 +100,25 @@ def _run_deploy_interactive(ctx: click.Context) -> None:
     choices: list[Any] = []
 
     if status.get("ip"):
-        choices.extend([
-            questionary.Choice("Check deployment health", value="health"),
-            questionary.Choice("Tear down EC2 deployment", value="down"),
-            questionary.Choice("Redeploy (tear down + deploy)", value="redeploy"),
-        ])
+        choices.extend(
+            [
+                questionary.Choice("Check deployment health", value="health"),
+                questionary.Choice("Tear down EC2 deployment", value="down"),
+                questionary.Choice("Redeploy (tear down + deploy)", value="redeploy"),
+            ]
+        )
     else:
         choices.append(
             questionary.Choice("Deploy to AWS EC2 (Bedrock)", value="ec2"),
         )
 
-    choices.extend([
-        questionary.Choice("Deploy to Railway", value="railway"),
-        questionary.Separator(),
-        questionary.Choice("Exit", value="exit"),
-    ])
+    choices.extend(
+        [
+            questionary.Choice("Deploy to Railway", value="railway"),
+            questionary.Separator(),
+            questionary.Choice("Exit", value="exit"),
+        ]
+    )
 
     action = questionary.select(
         "What would you like to do?",

@@ -158,7 +158,11 @@ class TestRunStreamedInvestigation:
         events = iter(
             [
                 StreamEvent("metadata", data={"run_id": "r-1"}),
-                StreamEvent("updates", node_name="extract_alert", data={"extract_alert": {"alert_name": "a"}}),
+                StreamEvent(
+                    "updates",
+                    node_name="extract_alert",
+                    data={"extract_alert": {"alert_name": "a"}},
+                ),
                 StreamEvent(
                     "updates",
                     node_name="diagnose",
@@ -295,9 +299,7 @@ class TestPreflight:
 
     def test_preflight_connection_refused(self) -> None:
         client = RemoteAgentClient("http://host:2024")
-        with patch.object(
-            client, "health", side_effect=httpx.ConnectError("refused")
-        ):
+        with patch.object(client, "health", side_effect=httpx.ConnectError("refused")):
             result = client.preflight()
 
         assert result.ok is False
