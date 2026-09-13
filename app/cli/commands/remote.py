@@ -88,9 +88,7 @@ def _resolve_active_url(ctx: click.Context) -> str | None:
     return _context_value(ctx, "url") or load_remote_url()
 
 
-def _browse_investigations(
-    ctx: click.Context, style: Any, questionary: Any, console: Any
-) -> None:
+def _browse_investigations(ctx: click.Context, style: Any, questionary: Any, console: Any) -> None:
     """Fetch remote investigations and let the user pick one to view."""
     import httpx
 
@@ -212,17 +210,13 @@ def _render_preflight_status(
 ) -> None:
     """Print a rich one-liner showing connection health."""
     if preflight is None:
-        console.print(
-            "  [bold cyan]Remote Agent[/bold cyan]  [dim]no remote URL configured[/dim]"
-        )
+        console.print("  [bold cyan]Remote Agent[/bold cyan]  [dim]no remote URL configured[/dim]")
         return
 
     base = f"[bold]{url}[/bold] [dim]({label})[/dim]"
 
     if not preflight.ok:
-        console.print(
-            f"  [bold cyan]Remote Agent[/bold cyan]  [red]●[/red] {base}"
-        )
+        console.print(f"  [bold cyan]Remote Agent[/bold cyan]  [red]●[/red] {base}")
         console.print(f"  [red]{preflight.error}[/red]")
         return
 
@@ -258,17 +252,13 @@ def _render_preflight_status(
             console.print(f"  [dim]{' │ '.join(metric_parts)}[/dim]")
 
     if preflight.supports_investigate and not preflight.supports_live_stream:
-        console.print(
-            "  [yellow]Live investigation streaming unavailable on this remote.[/yellow]"
-        )
+        console.print("  [yellow]Live investigation streaming unavailable on this remote.[/yellow]")
         console.print(
             "  [dim]Redeploy the latest remote server to stream LangGraph step events.[/dim]"
         )
 
 
-def _render_health_with_preflight(
-    preflight: PreflightResult, base_url: str, console: Any
-) -> None:
+def _render_health_with_preflight(preflight: PreflightResult, base_url: str, console: Any) -> None:
     """Render health using the already-gathered preflight result."""
     from rich.panel import Panel
     from rich.table import Table
@@ -327,7 +317,9 @@ def _render_health_rich(data: dict[str, Any], base_url: str) -> None:
     header.add_row("[bold]Version[/bold]", version)
     header.add_row("[bold]Server type[/bold]", server_type)
     header.add_row("[bold]Endpoints[/bold]", ", ".join(endpoints) or "none")
-    console.print(Panel(header, title="[bold cyan]Remote Agent Health[/bold cyan]", border_style="cyan"))
+    console.print(
+        Panel(header, title="[bold cyan]Remote Agent Health[/bold cyan]", border_style="cyan")
+    )
 
     system = data.get("system")
     if not system:
@@ -410,9 +402,7 @@ def _build_investigation_choices(
 
     if preflight and preflight.supports_langgraph and not preflight.supports_stream:
         return [
-            questionary.Choice(
-                "Run investigation (custom alert)", value="investigate-langgraph"
-            ),
+            questionary.Choice("Run investigation (custom alert)", value="investigate-langgraph"),
             questionary.Choice(
                 "Run investigation (sample alert)", value="investigate-sample-langgraph"
             ),
@@ -632,9 +622,7 @@ def _run_remote_interactive(ctx: click.Context) -> None:
                     if remote_url == switched_url:
                         set_active_remote(name)
                         active_name = name
-                        console.print(
-                            f"  Active remote: [bold]{name}[/bold] → {switched_url}"
-                        )
+                        console.print(f"  Active remote: [bold]{name}[/bold] → {switched_url}")
                         break
                 url = switched_url
                 ctx.obj["url"] = url
@@ -777,8 +765,7 @@ def _handle_stream_404(
 
     if preflight.supports_langgraph:
         console.print(
-            "  [yellow]Streaming endpoint not available — "
-            "LangGraph deployment detected.[/yellow]"
+            "  [yellow]Streaming endpoint not available — LangGraph deployment detected.[/yellow]"
         )
         console.print("  [dim]Auto-switching to LangGraph trigger path...[/dim]")
         console.print()
@@ -829,9 +816,7 @@ def _run_langgraph_investigation(ctx: click.Context, raw_alert: dict[str, Any]) 
             from rich.console import Console
 
             console = Console(highlight=False)
-            console.print(
-                "  [yellow]LangGraph endpoint not available on this server.[/yellow]"
-            )
+            console.print("  [yellow]LangGraph endpoint not available on this server.[/yellow]")
             console.print("  [dim]Falling back to lightweight server path...[/dim]")
             console.print()
             _run_streamed_investigation(ctx, raw_alert)
@@ -853,8 +838,12 @@ def _run_langgraph_investigation(ctx: click.Context, raw_alert: dict[str, Any]) 
 
 
 @click.group(name="remote", invoke_without_command=True)
-@click.option("--url", default=None, help="Remote agent base URL (e.g. 1.2.3.4 or http://host:2024).")
-@click.option("--api-key", default=None, envvar="OPENSRE_API_KEY", help="API key for the remote agent.")
+@click.option(
+    "--url", default=None, help="Remote agent base URL (e.g. 1.2.3.4 or http://host:2024)."
+)
+@click.option(
+    "--api-key", default=None, envvar="OPENSRE_API_KEY", help="API key for the remote agent."
+)
 @click.pass_context
 def remote(ctx: click.Context, url: str | None, api_key: str | None) -> None:
     """Connect to and trigger a remote deployed agent."""
@@ -934,9 +923,7 @@ def remote_trigger(ctx: click.Context, alert_json: str | None, detach: bool) -> 
 
         from app.remote.renderer import StreamRenderer
 
-        events = client.trigger_investigation(
-            _parse_alert_json(alert_json) if alert_json else None
-        )
+        events = client.trigger_investigation(_parse_alert_json(alert_json) if alert_json else None)
         StreamRenderer().render_stream(events)
         _save_remote_base_url(client)
     except httpx.TimeoutException as exc:
@@ -953,7 +940,9 @@ def remote_trigger(ctx: click.Context, alert_json: str | None, detach: bool) -> 
 
 @remote.command(name="investigate")
 @click.option("--alert-json", default=None, help="Inline alert JSON payload string.")
-@click.option("--sample", is_flag=True, default=False, help="Use the built-in sample alert payload.")
+@click.option(
+    "--sample", is_flag=True, default=False, help="Use the built-in sample alert payload."
+)
 @click.option(
     "--no-stream",
     is_flag=True,
@@ -1022,7 +1011,9 @@ def _run_blocking_investigation(ctx: click.Context, raw_alert: dict[str, Any]) -
 
 
 @remote.command(name="pull")
-@click.option("--latest", is_flag=True, default=False, help="Download only the most recent investigation.")
+@click.option(
+    "--latest", is_flag=True, default=False, help="Download only the most recent investigation."
+)
 @click.option("--all", "pull_all", is_flag=True, default=False, help="Download all investigations.")
 @click.option("--output-dir", default="./investigations", help="Directory to save .md files to.")
 @click.pass_context

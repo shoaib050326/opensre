@@ -102,7 +102,10 @@ class VercelClient:
                 "[vercel] list_projects HTTP failure status=%s",
                 e.response.status_code,
             )
-            return {"success": False, "error": f"HTTP {e.response.status_code}: {e.response.text[:200]}"}
+            return {
+                "success": False,
+                "error": f"HTTP {e.response.status_code}: {e.response.text[:200]}",
+            }
         except Exception as e:
             logger.warning("[vercel] list_projects error type=%s detail=%s", type(e).__name__, e)
             return {"success": False, "error": str(e)}
@@ -156,7 +159,10 @@ class VercelClient:
                 project_id,
                 state,
             )
-            return {"success": False, "error": f"HTTP {e.response.status_code}: {e.response.text[:200]}"}
+            return {
+                "success": False,
+                "error": f"HTTP {e.response.status_code}: {e.response.text[:200]}",
+            }
         except Exception as e:
             logger.warning("[vercel] list_deployments error type=%s detail=%s", type(e).__name__, e)
             return {"success": False, "error": str(e)}
@@ -188,7 +194,10 @@ class VercelClient:
                 e.response.status_code,
                 deployment_id,
             )
-            return {"success": False, "error": f"HTTP {e.response.status_code}: {e.response.text[:200]}"}
+            return {
+                "success": False,
+                "error": f"HTTP {e.response.status_code}: {e.response.text[:200]}",
+            }
         except Exception as e:
             logger.warning("[vercel] get_deployment error type=%s detail=%s", type(e).__name__, e)
             return {"success": False, "error": str(e)}
@@ -205,11 +214,13 @@ class VercelClient:
             events = []
             for ev in raw_events:
                 text = ev.get("text") or (ev.get("payload") or {}).get("text") or ""
-                events.append({
-                    "type": ev.get("type", ""),
-                    "created": ev.get("created", ""),
-                    "text": str(text),
-                })
+                events.append(
+                    {
+                        "type": ev.get("type", ""),
+                        "created": ev.get("created", ""),
+                        "text": str(text),
+                    }
+                )
             return {"success": True, "events": events, "total": len(events)}
         except httpx.HTTPStatusError as e:
             logger.warning(
@@ -217,9 +228,14 @@ class VercelClient:
                 e.response.status_code,
                 deployment_id,
             )
-            return {"success": False, "error": f"HTTP {e.response.status_code}: {e.response.text[:200]}"}
+            return {
+                "success": False,
+                "error": f"HTTP {e.response.status_code}: {e.response.text[:200]}",
+            }
         except Exception as e:
-            logger.warning("[vercel] get_deployment_events error type=%s detail=%s", type(e).__name__, e)
+            logger.warning(
+                "[vercel] get_deployment_events error type=%s detail=%s", type(e).__name__, e
+            )
             return {"success": False, "error": str(e)}
 
     def get_runtime_logs(self, deployment_id: str, limit: int = 100) -> dict[str, Any]:
@@ -248,7 +264,10 @@ class VercelClient:
                 e.response.status_code,
                 deployment_id,
             )
-            return {"success": False, "error": f"HTTP {e.response.status_code}: {e.response.text[:200]}"}
+            return {
+                "success": False,
+                "error": f"HTTP {e.response.status_code}: {e.response.text[:200]}",
+            }
         except Exception as e:
             logger.warning("[vercel] get_runtime_logs error type=%s detail=%s", type(e).__name__, e)
             return {"success": False, "error": str(e)}
