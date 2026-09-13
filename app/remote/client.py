@@ -140,9 +140,7 @@ class RemoteAgentClient:
         except httpx.ConnectError as exc:
             return PreflightResult(ok=False, error=f"connection refused ({exc})")
         except httpx.HTTPStatusError as exc:
-            return PreflightResult(
-                ok=False, error=f"HTTP {exc.response.status_code}"
-            )
+            return PreflightResult(ok=False, error=f"HTTP {exc.response.status_code}")
         except Exception as exc:  # noqa: BLE001
             return PreflightResult(ok=False, error=str(exc))
 
@@ -165,9 +163,7 @@ class RemoteAgentClient:
             system=system,
         )
 
-    def _detect_server_type(
-        self, *, timeout: float = PREFLIGHT_TIMEOUT
-    ) -> tuple[str, list[str]]:
+    def _detect_server_type(self, *, timeout: float = PREFLIGHT_TIMEOUT) -> tuple[str, list[str]]:
         """Probe endpoints to infer the server type when ``/ok`` omits capability info.
 
         Uses **read-only GET requests only** so that detection never triggers
@@ -195,9 +191,7 @@ class RemoteAgentClient:
         """
         try:
             with httpx.Client(timeout=timeout) as client:
-                resp = client.get(
-                    f"{self.base_url}{path}", headers=self._headers
-                )
+                resp = client.get(f"{self.base_url}{path}", headers=self._headers)
                 return resp.status_code != 404
         except Exception:  # noqa: BLE001
             return False
