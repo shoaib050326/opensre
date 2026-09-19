@@ -51,8 +51,7 @@ def main() -> int:
     is_ci = (os.getenv("CI") or "").strip().lower() in {"1", "true", "yes"}
     if is_ci and not (os.getenv("TRACER_RUN_ID") or "").strip():
         print(
-            "WARNING: CI is true but TRACER_RUN_ID is missing. "
-            "Continuing with a fallback run id."
+            "WARNING: CI is true but TRACER_RUN_ID is missing. Continuing with a fallback run id."
         )
 
     # Pipeline start
