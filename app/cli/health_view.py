@@ -126,9 +126,14 @@ def render_health_json(
         for item in results
     ]
     counts = _summary_counts(normalized)
-    click.echo(json.dumps({
-        "environment": environment,
-        "integration_store": str(integration_store_path),
-        "summary": counts,
-        "results": normalized,
-    }, indent=2))
+    click.echo(
+        json.dumps(
+            {
+                "environment": environment,
+                "integration_store": str(integration_store_path),
+                "summary": counts,
+                "results": normalized,
+            },
+            indent=2,
+        )
+    )
