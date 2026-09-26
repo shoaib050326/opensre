@@ -233,6 +233,7 @@ def launch_instance(
     tags.append({"Key": "Name", "Value": f"{stack_name}-instance"})
 
     import os as _os
+
     launch_kwargs: dict = {
         "ImageId": ami_id,
         "InstanceType": instance_type,
