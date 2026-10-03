@@ -101,7 +101,9 @@ class VercelLogsTool(BaseTool):
 
         with client:
             deployment_result = client.get_deployment(deployment_id)
-            deployment = deployment_result.get("deployment", {}) if deployment_result.get("success") else {}
+            deployment = (
+                deployment_result.get("deployment", {}) if deployment_result.get("success") else {}
+            )
 
             events_result = client.get_deployment_events(deployment_id, limit=limit)
             events: list[dict[str, Any]] = []
@@ -115,7 +117,8 @@ class VercelLogsTool(BaseTool):
                     runtime_logs = logs_result.get("logs", [])
 
         error_events = [
-            ev for ev in events
+            ev
+            for ev in events
             if any(kw in str(ev.get("text", "")).lower() for kw in _ERROR_KEYWORDS)
         ]
 
