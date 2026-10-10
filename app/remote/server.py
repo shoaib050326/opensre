@@ -321,7 +321,9 @@ def _save_investigation(
 
     if result.get("is_noise"):
         root_cause = "Alert classified as noise — no investigation performed."
-        report = "The alert was automatically classified as noise (non-actionable) during extraction."
+        report = (
+            "The alert was automatically classified as noise (non-actionable) during extraction."
+        )
         problem_md = result.get("problem_md") or "N/A"
     else:
         root_cause = result.get("root_cause") or "N/A"

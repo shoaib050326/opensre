@@ -151,7 +151,13 @@ def test_get_deployment_events_list_response(monkeypatch: pytest.MonkeyPatch) ->
 
 def test_get_runtime_logs_success(monkeypatch: pytest.MonkeyPatch) -> None:
     payload = [
-        {"id": "log_1", "createdAt": 1704067200000, "payload": {"text": "invoked"}, "type": "request", "source": "lambda"},
+        {
+            "id": "log_1",
+            "createdAt": 1704067200000,
+            "payload": {"text": "invoked"},
+            "type": "request",
+            "source": "lambda",
+        },
     ]
     monkeypatch.setattr(
         "app.services.vercel.client.httpx.Client.get",
@@ -206,7 +212,9 @@ def test_get_deployment_events_dict_response(monkeypatch: pytest.MonkeyPatch) ->
 
 
 def test_get_runtime_logs_dict_wrapped_response(monkeypatch: pytest.MonkeyPatch) -> None:
-    payload = {"logs": [{"id": "l1", "createdAt": 1, "payload": {}, "type": "stdout", "source": "lambda"}]}
+    payload = {
+        "logs": [{"id": "l1", "createdAt": 1, "payload": {}, "type": "stdout", "source": "lambda"}]
+    }
     monkeypatch.setattr(
         "app.services.vercel.client.httpx.Client.get",
         lambda _self, _path, **_kw: _FakeResponse(payload),
