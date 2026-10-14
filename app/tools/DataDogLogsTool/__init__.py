@@ -8,8 +8,17 @@ from app.tools.DataDogLogsTool._client import make_client, unavailable
 from app.tools.tool_decorator import tool
 
 _ERROR_KEYWORDS = (
-    "error", "fail", "exception", "traceback", "pipeline_error",
-    "critical", "killed", "oomkilled", "crash", "panic", "timeout",
+    "error",
+    "fail",
+    "exception",
+    "traceback",
+    "pipeline_error",
+    "critical",
+    "killed",
+    "oomkilled",
+    "crash",
+    "panic",
+    "timeout",
 )
 
 
@@ -81,8 +90,7 @@ def query_datadog_logs(
 
     logs = result.get("logs", [])
     error_logs = [
-        log for log in logs
-        if any(kw in log.get("message", "").lower() for kw in _ERROR_KEYWORDS)
+        log for log in logs if any(kw in log.get("message", "").lower() for kw in _ERROR_KEYWORDS)
     ]
     return {
         "source": "datadog_logs",

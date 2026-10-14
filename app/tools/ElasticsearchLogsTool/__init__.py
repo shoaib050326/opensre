@@ -8,8 +8,15 @@ from app.tools.base import BaseTool
 from app.tools.ElasticsearchLogsTool._client import make_client, unavailable
 
 _ERROR_KEYWORDS = (
-    "error", "fail", "exception", "traceback",
-    "critical", "killed", "crash", "panic", "timeout",
+    "error",
+    "fail",
+    "exception",
+    "traceback",
+    "critical",
+    "killed",
+    "crash",
+    "panic",
+    "timeout",
 )
 
 
@@ -36,8 +43,14 @@ class ElasticsearchLogsTool(BaseTool):
                 "type": "string",
                 "description": "Index pattern to search (e.g. 'logs-*'). Defaults to ELASTICSEARCH_INDEX_PATTERN env var or '*'.",
             },
-            "url": {"type": "string", "description": "Elasticsearch URL (overrides ELASTICSEARCH_URL env var)"},
-            "api_key": {"type": "string", "description": "API key for authenticated clusters (optional)"},
+            "url": {
+                "type": "string",
+                "description": "Elasticsearch URL (overrides ELASTICSEARCH_URL env var)",
+            },
+            "api_key": {
+                "type": "string",
+                "description": "API key for authenticated clusters (optional)",
+            },
         },
         "required": ["query"],
     }
@@ -68,7 +81,9 @@ class ElasticsearchLogsTool(BaseTool):
     ) -> dict:
         client = make_client(url, api_key=api_key, index_pattern=index_pattern)
         if not client:
-            return unavailable("elasticsearch_logs", "logs", "Elasticsearch integration not configured")
+            return unavailable(
+                "elasticsearch_logs", "logs", "Elasticsearch integration not configured"
+            )
 
         result = client.search_logs(
             query=query,
@@ -80,7 +95,8 @@ class ElasticsearchLogsTool(BaseTool):
 
         logs = result.get("logs", [])
         error_logs = [
-            log for log in logs
+            log
+            for log in logs
             if any(kw in log.get("message", "").lower() for kw in _ERROR_KEYWORDS)
         ]
         return {
