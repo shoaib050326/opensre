@@ -224,12 +224,14 @@ class GoogleDocsIntegrationConfig(StrictConfigModel):
         # Enforce reasonable bounds: 5 seconds minimum, 300 seconds maximum
         return max(5, min(timeout, 300))
 
+
 class GitLabIntegrationConfig(StrictConfigModel):
     """Normalized Gitlab credentials used by resolution and verification flows."""
 
     url: str
     access_token: str
     integration_id: str = ""
+
 
 class OpsGenieIntegrationConfig(StrictConfigModel):
     """Normalized OpsGenie credentials used by resolution and verification flows."""
